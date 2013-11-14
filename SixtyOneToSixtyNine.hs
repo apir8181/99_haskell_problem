@@ -103,3 +103,47 @@ tree64 = Branch 'n'
           Empty
          )
 
+-- 65
+treeHeight :: Tree a -> Int
+treeHeight Empty = 0
+treeHeight (Branch x lch rch) = 1 + max (treeHeight lch) (treeHeight rch)
+
+treeLeftMostInfo :: Tree a -> (Int, Int)
+treeLeftMostInfo tree = helper tree 1 1
+  where helper (Branch x Empty _) idx h = (idx, h)
+        helper (Branch x lch rch) idx h = helper lch (idx*2) (h+1)
+
+layoutWide :: Tree a -> Tree (a, LayoutPos)
+layoutWide Empty = Empty
+layoutWide tree = let height = treeHeight tree;
+                      (lidx, ldepth) = treeLeftMostInfo tree;
+                      margins = reverse $ take height [2^x|x<-[1..height]];
+                      (rootx, rooty) = (foldr (\x acc -> acc + x `quot` 2)
+                                        1 (tail $ take ldepth margins),
+                                        1)
+                  in helper tree (LayoutPos rootx rooty) 1 margins
+  where helper Empty pos h margins = Empty
+        helper tree@(Branch e lch rch) pos@(LayoutPos x y) h margins = let margin = margins !! h
+                                                       in Branch (e, pos)
+                                                          (helper lch (LayoutPos (x - margin `quot` 2) (y + 1)) (h+1) margins)
+                                                          (helper rch (LayoutPos (x + margin `quot` 2) (y + 1)) (h+1) margins)
+
+tree65 :: Tree Char
+tree65 = Branch 'n'
+         (Branch 'k'
+          (Branch 'c'
+           (Branch 'a' Empty Empty)
+           (Branch 'e'
+            (Branch 'd' Empty Empty)
+            (Branch 'g' Empty Empty)
+           )
+          )
+          (Branch 'm' Empty Empty)
+         )
+         (Branch 'u'
+          (Branch 'p'
+           Empty
+           (Branch 'q' Empty Empty)
+          )
+          Empty
+         )                                                          
