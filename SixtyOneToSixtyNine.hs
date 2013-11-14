@@ -123,6 +123,8 @@ layoutWide tree = let height = treeHeight tree;
                                         1)
                   in helper tree (LayoutPos rootx rooty) 1 margins
   where helper Empty pos h margins = Empty
+        helper (Branch e Empty Empty) pos h margins = Branch (e, pos)
+                                                      Empty Empty
         helper tree@(Branch e lch rch) pos@(LayoutPos x y) h margins = let margin = margins !! h
                                                        in Branch (e, pos)
                                                           (helper lch (LayoutPos (x - margin `quot` 2) (y + 1)) (h+1) margins)
@@ -147,3 +149,87 @@ tree65 = Branch 'n'
           )
           Empty
          )                                                          
+
+
+-- 66
+
+-- 67
+stringToTree :: String -> Tree Char
+stringToTree "" = Empty
+stringToTree s
+  | length s == 1 = Branch (s!!0) Empty Empty
+  | otherwise = let c = s !! 0;
+                    subString = init . tail . tail $ s;
+                    (_, _, idx) = foldl'
+                                  (\(num, idx, res) x->
+                                    case x of '(' -> (num+1, idx+1, res)
+                                              ')' -> (num-1, idx+1, res)
+                                              ',' -> if num == 0
+                                                     then (num, idx+1, idx)
+                                                     else (num, idx+1, res)
+                                              c -> (num, idx+1,res)
+                                                          
+                                  ) (0, 0, -1) subString
+                    lString = take idx subString;
+                    rString = drop (idx+1) subString
+                in Branch c (stringToTree lString) (stringToTree rString)
+-- 68
+treeToPreorder :: Tree a -> [a]
+treeToPreorder Empty = []
+treeToPreorder (Branch x lch rch) = [x] ++ treeToPreorder lch ++
+                                    treeToPreorder rch
+treeToInorder :: Tree a -> [a]
+treeToInorder Empty = []
+treeToInorder (Branch x lch rch) = treeToInorder lch ++ [x] ++
+                                   treeToInorder rch
+
+-- take [a, a + b] in the List
+subList :: [a] -> Int -> Int -> [a]
+subList xs a b = take b (drop a xs)
+
+preInTree :: (Ord a) => [a] -> [a] -> Tree a
+preInTree [] [] = Empty
+preInTree pre ino = let c = pre !! 0;
+                        maybeIdx = elemIndex c ino;
+                        inoIdx = case maybeIdx of Just x -> x
+                                                  Nothing -> error ""
+                        lino = take inoIdx ino;
+                        rino = drop (inoIdx+1) ino;
+                        lpre = subList pre 1 (length lino);
+                        rpre = drop (length lino + 1) pre
+                    in Branch c (preInTree lpre lino) (preInTree rpre rino)
+
+-- problem 69
+ds2Func :: [Tree Char] -> Char -> [Tree Char]
+ds2Func stack c = if c == '.'
+                  then let now = head stack
+                           newHead = case now of Branch x Empty Empty -> Branch x (Branch '.' Empty Empty) Empty
+                                                 Branch x lch Empty -> Branch x lch (Branch '.' Empty Empty)
+                           newStack = newHead : (tail stack)
+                       in handleNewStack newStack
+                  else let newStack = (Branch c Empty Empty) : stack
+                       in newStack
+  where handleNewStack stack = if length stack == 1
+                               then stack
+                               else let fstElem = head stack
+                                        sndElem = stack !! 1
+                                    in case fstElem of Branch x lch Empty -> stack
+                                                       Branch x lch rch -> case sndElem of Branch x Empty Empty -> let newElem = Branch x fstElem Empty
+                                                                                                                   in newElem : (drop 2 stack)
+                                                                                           Branch x lch Empty -> let newElem = Branch x lch fstElem
+                                                                                                                     newStack = newElem : (drop 2 stack)
+                                                                                                                 in handleNewStack newStack
+
+dTree2Tree :: Tree Char -> Tree Char
+dTree2Tree Empty = Empty
+dTree2Tree (Branch '.' Empty Empty) = Empty
+dTree2Tree (Branch x lch rch) = Branch x (dTree2Tree lch) (dTree2Tree rch)
+
+ds2Tree :: String -> Tree Char
+ds2Tree "" = Empty
+ds2Tree str = dTree2Tree $ head $ foldl' (\stack x -> ds2Func stack x) [] str
+
+tree2ds :: Tree Char -> String
+tree2ds Empty = "."
+tree2ds (Branch x lch rch) = [x] ++ (tree2ds lch) ++ (tree2ds rch)
+                                         
