@@ -70,3 +70,30 @@ adjGraph1 = AdjGraph [('b',"cf"), ('c',"bf"), ('d',""), ('f',"bck"),
 
 humanGraph1 = HumanGraph [('b','c'), ('b','f'), ('c','f'), 
                           ('f','k'), ('g','h')]
+
+-- 81 for graph, not bigraph
+adjGraphNodeNexts :: (Eq a) => AdjGraph a -> a -> [a]
+adjGraphNodeNexts (AdjGraph nodeEdges) e = helper nodeEdges
+  where helper (x:xs) = if fst x == e then (snd x) else helper xs
+
+adjGraphPaths :: (Ord a) => AdjGraph a -> a -> a -> [[a]]
+adjGraphPaths adjGraph@(AdjGraph nodeEdges) src dst =
+    case do { src `lookup` nodeEdges >> dst `lookup` nodeEdges } of
+      Nothing -> []
+      otherwise -> helper [[src]] []
+  where helper [] acc = acc
+        helper (path:paths) acc = 
+          if last path == dst then helper paths (path:acc)
+          else 
+            let nowElem = last path
+                nexts = adjGraphNodeNexts adjGraph nowElem
+                validNexts = filter (\next -> not $ next `elem` path) nexts
+                newPaths = map (\next -> path ++ [next]) validNexts
+            in helper (paths ++ newPaths) acc 
+
+humanGraphPaths :: (Ord a) => HumanGraph a -> a -> a -> [[a]]
+humanGraphPaths humanGraph src dst =
+  let adjGraph = humanGraphToAdjGraph humanGraph
+  in adjGraphPaths adjGraph src dst
+
+humanGraph2 = HumanGraph [(1,2), (2,3), (1,3), (3,4), (4,2),(5,6)]
